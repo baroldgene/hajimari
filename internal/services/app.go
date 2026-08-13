@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/toboshii/hajimari/internal/config"
 	"github.com/toboshii/hajimari/internal/hajimari/crdapps"
+	"github.com/toboshii/hajimari/internal/hajimari/httprouteapps"
 	"github.com/toboshii/hajimari/internal/hajimari/ingressapps"
 	"github.com/toboshii/hajimari/internal/kube"
 	"github.com/toboshii/hajimari/internal/kube/util"
@@ -80,6 +81,16 @@ func getKubeApps() []models.AppGroup {
 	if err != nil {
 		logger.Error("An error occurred while looking for hajimari Ingress apps", err)
 		return nil
+	}
+
+	// Collect Gateway API HTTPRoute apps. Gateway API is optional, so an
+	// unavailable or unauthorized HTTPRoute resource must not hide Ingress apps.
+	httpRouteAppsList := httprouteapps.NewList(dynClient, kubeClient, *appConfig)
+	httpRouteApps, err := httpRouteAppsList.Populate(namespaces...).Get()
+	if err != nil {
+		logger.Error("An error occurred while looking for hajimari HTTPRoute apps", err)
+	} else {
+		ingressApps = append(ingressApps, httpRouteApps...)
 	}
 
 	// Collect Custom Resource apps
