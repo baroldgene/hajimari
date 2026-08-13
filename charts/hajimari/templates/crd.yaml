@@ -13,7 +13,6 @@ spec:
     listKind: ApplicationList
     plural: applications
     singular: application
-  preserveUnknownFields: false
   scope: Namespaced
   versions:
     - name: v1alpha1
