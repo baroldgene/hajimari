@@ -8,6 +8,8 @@ on:
 jobs:
   lint-test:
     runs-on: ubuntu-latest
+    env:
+      CT_TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -32,7 +34,7 @@ jobs:
         run: |
           changed=$(ct list-changed)
           if [[ -n "$changed" ]]; then
-            echo "::set-output name=changed::true"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
           
       - name: Run chart-testing (lint)
