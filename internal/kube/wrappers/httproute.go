@@ -1,7 +1,9 @@
 package wrappers
 
 import (
+	"net"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/toboshii/hajimari/internal/annotations"
@@ -69,13 +71,13 @@ func (hw *HTTPRouteWrapper) GetTargetBlank() bool {
 
 // GetURL returns the route URL using HTTP when no explicit URL is configured.
 func (hw *HTTPRouteWrapper) GetURL() string {
-	return hw.GetURLWithGateway("http", "")
+	return hw.GetURLWithGateway("http", "", 0)
 }
 
 // GetURLWithGateway returns the explicit Hajimari URL annotation when present.
 // Otherwise it builds a URL from the route hostname, its first path match, and
 // the selected Gateway listener details.
-func (hw *HTTPRouteWrapper) GetURLWithGateway(scheme, gatewayHostname string) string {
+func (hw *HTTPRouteWrapper) GetURLWithGateway(scheme, gatewayHostname string, gatewayPort int64) string {
 	if annotatedURL := hw.GetAnnotationValue(annotations.HajimariURLAnnotation); annotatedURL != "" {
 		parsedURL, err := url.ParseRequestURI(annotatedURL)
 		if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
@@ -96,6 +98,9 @@ func (hw *HTTPRouteWrapper) GetURLWithGateway(scheme, gatewayHostname string) st
 
 	if scheme != "https" {
 		scheme = "http"
+	}
+	if shouldIncludePort(scheme, gatewayPort) {
+		hostname = net.JoinHostPort(hostname, strconv.FormatInt(gatewayPort, 10))
 	}
 	return scheme + "://" + hostname + hw.getPath()
 }
@@ -175,11 +180,15 @@ func (hw *HTTPRouteWrapper) getPath() string {
 			}
 			path, found, err := unstructured.NestedString(matchMap, "path", "value")
 			if err == nil && found {
-				return strings.TrimRight(path, "/")
+				return path
 			}
 		}
 	}
 	return ""
+}
+
+func shouldIncludePort(scheme string, port int64) bool {
+	return port != 0 && !(scheme == "http" && port == 80) && !(scheme == "https" && port == 443)
 }
 
 func isServiceBackend(backendRef map[string]interface{}) bool {

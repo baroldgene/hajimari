@@ -13,10 +13,10 @@ import (
 // resolveGatewayListener returns the URL scheme and hostname advertised by the
 // first parent Gateway listener that can serve the route. A route hostname,
 // when present, takes precedence over the listener hostname in the wrapper.
-func resolveGatewayListener(route unstructured.Unstructured, dynClient dynamic.Interface) (string, string) {
+func resolveGatewayListener(route unstructured.Unstructured, dynClient dynamic.Interface) (string, string, int64) {
 	parentRefs, found, err := unstructured.NestedSlice(route.Object, "spec", "parentRefs")
 	if err != nil || !found {
-		return "http", ""
+		return "http", "", 0
 	}
 
 	for _, parentRef := range parentRefs {
@@ -39,12 +39,12 @@ func resolveGatewayListener(route unstructured.Unstructured, dynClient dynamic.I
 			logger.Debugf("Could not read parent Gateway '%v' in Namespace '%v' for HTTPRoute '%v': %v", name, namespace, route.GetName(), err)
 			continue
 		}
-		if scheme, hostname, found := gatewayListenerURL(*gateway, parentRefMap); found {
-			return scheme, hostname
+		if scheme, hostname, port, found := gatewayListenerURL(*gateway, parentRefMap); found {
+			return scheme, hostname, port
 		}
 	}
 
-	return "http", ""
+	return "http", "", 0
 }
 
 func getGateway(dynClient dynamic.Interface, namespace, name string) (*unstructured.Unstructured, error) {
@@ -67,15 +67,19 @@ func isGatewayParentRef(parentRef map[string]interface{}) bool {
 	return !found || kind == "" || kind == "Gateway"
 }
 
-func gatewayListenerURL(gateway unstructured.Unstructured, parentRef map[string]interface{}) (string, string, bool) {
+func gatewayListenerURL(gateway unstructured.Unstructured, parentRef map[string]interface{}) (string, string, int64, bool) {
 	listeners, found, err := unstructured.NestedSlice(gateway.Object, "spec", "listeners")
 	if err != nil || !found {
-		return "", "", false
+		return "", "", 0, false
 	}
 	sectionName, _, _ := unstructured.NestedString(parentRef, "sectionName")
 	parentPort, hasParentPort, _ := unstructured.NestedInt64(parentRef, "port")
 
-	var httpHostname string
+	var (
+		httpHostname string
+		httpPort     int64
+		httpFound    bool
+	)
 	for _, listener := range listeners {
 		listenerMap, ok := listener.(map[string]interface{})
 		if !ok || !matchesParentRef(listenerMap, sectionName, parentPort, hasParentPort) {
@@ -83,20 +87,23 @@ func gatewayListenerURL(gateway unstructured.Unstructured, parentRef map[string]
 		}
 		protocol, _, _ := unstructured.NestedString(listenerMap, "protocol")
 		hostname, _, _ := unstructured.NestedString(listenerMap, "hostname")
+		port, _, _ := unstructured.NestedInt64(listenerMap, "port")
 		switch protocol {
 		case "HTTPS":
-			return "https", concreteHostname(hostname), true
+			return "https", concreteHostname(hostname), port, true
 		case "HTTP":
-			if httpHostname == "" {
+			if !httpFound {
 				httpHostname = concreteHostname(hostname)
+				httpPort = port
+				httpFound = true
 			}
 		}
 	}
 
-	if httpHostname != "" || sectionName != "" || hasParentPort {
-		return "http", httpHostname, true
+	if httpFound {
+		return "http", httpHostname, httpPort, true
 	}
-	return "", "", false
+	return "", "", 0, false
 }
 
 func matchesParentRef(listener map[string]interface{}, sectionName string, parentPort int64, hasParentPort bool) bool {

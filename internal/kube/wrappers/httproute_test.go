@@ -31,7 +31,7 @@ func TestHTTPRouteWrapperExtractsURLAndBackendServices(t *testing.T) {
 	route.SetNamespace("apps")
 
 	wrapper := NewHTTPRouteWrapper(&route)
-	if got, want := wrapper.GetURLWithGateway("https", ""), "https://app.example.test/dashboard"; got != want {
+	if got, want := wrapper.GetURLWithGateway("https", "", 8443), "https://app.example.test:8443/dashboard/"; got != want {
 		t.Fatalf("GetURLWithGateway() = %q, want %q", got, want)
 	}
 
@@ -47,7 +47,7 @@ func TestHTTPRouteWrapperUsesExplicitURL(t *testing.T) {
 	route.SetName("app-route")
 	route.SetAnnotations(map[string]string{"hajimari.io/url": "https://external.example.test/app"})
 
-	if got, want := NewHTTPRouteWrapper(&route).GetURLWithGateway("http", "gateway.example.test"), "https://external.example.test/app"; got != want {
+	if got, want := NewHTTPRouteWrapper(&route).GetURLWithGateway("http", "gateway.example.test", 8080), "https://external.example.test/app"; got != want {
 		t.Fatalf("GetURLWithGateway() = %q, want %q", got, want)
 	}
 }

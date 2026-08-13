@@ -46,7 +46,7 @@ func (al *List) Populate(namespaces ...string) *List {
 		Filter(byHajimariEnableAnnotation).
 		Get()
 
-if al.appConfig.InstanceName != "" {
+	if al.appConfig.InstanceName != "" {
 		filteredRoutes, filterErr := httproutes.NewList(al.dynClient, al.appConfig, routes...).
 			Filter(byHajimariInstanceAnnotation).
 			Get()
@@ -81,11 +81,11 @@ func convertHTTPRoutesToHajimariApps(routes []unstructured.Unstructured, dynClie
 			appGroups = append(appGroups, models.AppGroup{Group: wrapper.GetGroup()})
 		}
 
-		scheme, gatewayHostname := resolveGatewayListener(route, dynClient)
+		scheme, gatewayHostname, gatewayPort := resolveGatewayListener(route, dynClient)
 		app := models.App{
 			Name:        wrapper.GetName(),
 			Icon:        wrapper.GetAnnotationValue(annotations.HajimariIconAnnotation),
-			URL:         wrapper.GetURLWithGateway(scheme, gatewayHostname),
+			URL:         wrapper.GetURLWithGateway(scheme, gatewayHostname, gatewayPort),
 			Info:        wrapper.GetInfo(),
 			TargetBlank: wrapper.GetTargetBlank(),
 		}
