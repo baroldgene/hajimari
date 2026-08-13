@@ -37,7 +37,6 @@ func TestHTTPRouteWrapperExtractsURLAndBackendServices(t *testing.T) {
 
 	if got, want := wrapper.GetBackendServiceReferences(), []util.ServiceReference{
 		{Namespace: "apps", Name: "app"},
-		{Namespace: "platform", Name: "shared"},
 	}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("GetBackendServiceReferences() = %#v, want %#v", got, want)
 	}

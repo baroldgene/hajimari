@@ -109,6 +109,7 @@ func (hw *HTTPRouteWrapper) GetBackendServiceReferences() []util.ServiceReferenc
 
 	services := make([]util.ServiceReference, 0)
 	seen := make(map[util.ServiceReference]struct{})
+	routeNamespace := hw.GetNamespace()
 	for _, rule := range rules {
 		ruleMap, ok := rule.(map[string]interface{})
 		if !ok {
@@ -129,7 +130,10 @@ func (hw *HTTPRouteWrapper) GetBackendServiceReferences() []util.ServiceReferenc
 			}
 			namespace, _, _ := unstructured.NestedString(backendMap, "namespace")
 			if namespace == "" {
-				namespace = hw.GetNamespace()
+				namespace = routeNamespace
+			}
+			if namespace != routeNamespace {
+				continue
 			}
 			service := util.ServiceReference{Namespace: namespace, Name: name}
 			if _, exists := seen[service]; !exists {
