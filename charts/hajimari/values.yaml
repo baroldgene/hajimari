@@ -22,7 +22,7 @@ env:
 # -- Configures Hajimari settings for this instance.
 # @default -- See below
 hajimari:
-  # -- The name of this instance, this allows running multiple 
+  # -- The name of this instance, this allows running multiple
   # instances of Hajimari on the same cluster
   instanceName: null
 
@@ -33,7 +33,7 @@ hajimari:
   namespaceSelector:
     matchNames:
     - media
-    
+
   # -- Override the title of the Hajimari pages
   title: null
 
