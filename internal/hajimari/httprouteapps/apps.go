@@ -95,7 +95,7 @@ func convertHTTPRoutesToHajimariApps(routes []unstructured.Unstructured, dynClie
 				app.Replicas = models.ReplicaInfo{
 					Total:     replicaStatus.GetReplicas(),
 					Available: replicaStatus.GetAvailableReplicas(),
-					PctReady:  math.Round(replicaStatus.GetRatio() * 100),
+					PctReady:  math.Round(float64(replicaStatus.GetAvailableReplicas()) / float64(replicaStatus.GetReplicas()) * 100),
 				}
 			}
 		}
