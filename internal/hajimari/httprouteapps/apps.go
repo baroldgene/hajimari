@@ -46,10 +46,14 @@ func (al *List) Populate(namespaces ...string) *List {
 		Filter(byHajimariEnableAnnotation).
 		Get()
 
-	if al.appConfig.InstanceName != "" {
-		routes, err = httproutes.NewList(al.dynClient, al.appConfig, routes...).
+if al.appConfig.InstanceName != "" {
+		filteredRoutes, filterErr := httproutes.NewList(al.dynClient, al.appConfig, routes...).
 			Filter(byHajimariInstanceAnnotation).
 			Get()
+		routes = filteredRoutes
+		if err == nil {
+			err = filterErr
+		}
 	}
 
 	if err != nil {
