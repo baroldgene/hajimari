@@ -21,6 +21,9 @@ jobs:
         with:
           version: v3.6.3
 
+      - name: Add chart dependency repository
+        run: helm repo add bjw-s https://bjw-s-labs.github.io/helm-charts/
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
