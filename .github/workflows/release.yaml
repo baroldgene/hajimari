@@ -2,16 +2,25 @@ name: release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Image tag to publish; defaults to the triggering Git ref.
+        required: false
+        type: string
   release:
     types:
       - published
 
 env:
-  REGISTRY_IMAGE: ghcr.io/toboshii/hajimari
+  REGISTRY_IMAGE: ghcr.io/baroldgene/hajimari
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: "!contains(github.event.head_commit.message, '[ci-skip]')"
     steps:
       - name: Checkout
@@ -20,7 +29,8 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          echo ::set-output name=version::${GITHUB_REF##*/}
+          version="${{ inputs.version }}"
+          echo "version=${version:-${GITHUB_REF##*/}}" >> "$GITHUB_OUTPUT"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:

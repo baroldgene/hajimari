@@ -25,6 +25,17 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Initialize chart repository
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages \
+            >/dev/null; then
+            empty_tree=$(git mktree </dev/null)
+            commit=$(git commit-tree "$empty_tree" \
+              -m "Initialize chart repository")
+            git push origin "$commit:refs/heads/gh-pages"
+          fi
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
@@ -34,4 +45,5 @@ jobs:
         uses: helm/chart-releaser-action@v1.5.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          CR_SKIP_EXISTING: "true"
           CR_RELEASE_NAME_TEMPLATE: "hajimari-helm-chart-{{ .Version }}"
