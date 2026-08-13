@@ -87,11 +87,10 @@ func getKubeApps() []models.AppGroup {
 	// unavailable or unauthorized HTTPRoute resource must not hide Ingress apps.
 	httpRouteAppsList := httprouteapps.NewList(dynClient, kubeClient, *appConfig)
 	httpRouteApps, err := httpRouteAppsList.Populate(namespaces...).Get()
-	if err != nil {
+if err != nil {
 		logger.Error("An error occurred while looking for hajimari HTTPRoute apps", err)
-	} else {
-		ingressApps = append(ingressApps, httpRouteApps...)
 	}
+	ingressApps = append(ingressApps, httpRouteApps...)
 
 	// Collect Custom Resource apps
 
