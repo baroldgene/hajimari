@@ -98,7 +98,7 @@ func (rsg *ReplicaStatusGetter) GetEndpointStatusesForServices(resourceName stri
 			logger.Debug("Checking EndpointSlice: ", epslice.Name)
 			rsg.replicas += len(epslice.Endpoints)
 			for _, endpoint := range epslice.Endpoints {
-				if endpoint.Conditions.Ready != nil && *endpoint.Conditions.Ready {
+				if endpoint.Conditions.Ready == nil || *endpoint.Conditions.Ready {
 					rsg.availableReplicas++
 				}
 			}
