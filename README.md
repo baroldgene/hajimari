@@ -24,8 +24,8 @@ Hajimari is a simplistically beautiful startpage designed to be the entrypoint f
 ## Features
 
 - Web and app search with customizable search providers
-- Dynamically list apps discovered from Kubernetes Ingresses or Custom Resources
-- Display replica status for ingress endpoints
+- Dynamically list apps discovered from Kubernetes Ingresses, Gateway API HTTPRoutes, or Custom Resources
+- Display replica status for Ingress and HTTPRoute backends
 - Support for non-Kubernetes apps via custom apps config
 - Customizable list of bookmarks
 - Selectable themes and custom theme support
@@ -63,7 +63,7 @@ make dev
 
 You will need to have `go` 1.19 and `node` 18 installed.
 
-Hajimari will need access to a kubeconfig file for a service account with [access to ingress and endpoint slice](charts/hajimari/templates/rbac.yaml) objects.
+Hajimari will need access to a kubeconfig file for a service account with [access to Ingress, Gateway API, and EndpointSlice](charts/hajimari/templates/rbac.yaml) objects.
 
 ## Usage
 
@@ -83,6 +83,12 @@ Hajimari looks for specific annotations on [Ingresses](https://kubernetes.io/doc
 | `hajimari.io/url`         | A URL for the Hajimari app (This will override the ingress URL). It MUST begin with a scheme i.e., `http://` or `https://`                           | `false`  |
 | `hajimari.io/targetBlank` | Determines if links should open in new tabs/windows                                                                                                  | `false`  |
 | `hajimari.io/info`        | A short description of the Hajimari app                                                                                                              | `false`  |
+
+### Gateway API HTTPRoutes
+
+Hajimari also discovers [Gateway API HTTPRoutes](https://gateway-api.sigs.k8s.io/reference/api-types/httproute/) in the selected namespaces. HTTPRoutes use the same `hajimari.io/*` annotations as Ingresses, including `hajimari.io/enable` and `hajimari.io/instance`.
+
+When no `hajimari.io/url` annotation is set, Hajimari builds the app URL from the first HTTPRoute hostname and path match. It uses `https` when the selected parent Gateway listener uses the `HTTPS` protocol, and `http` otherwise. Add `hajimari.io/url` for hostless or wildcard routes, routes with more complex matching, or when you need to choose a different public URL.
 
 ### Config
 

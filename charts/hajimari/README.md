@@ -1,6 +1,6 @@
 # hajimari
 
-![Version: 2.0.2](https://img.shields.io/badge/Version-2.0.2-informational?style=flat-square) ![AppVersion: v0.3.1](https://img.shields.io/badge/AppVersion-v0.3.1-informational?style=flat-square)
+![Version: 2.0.3](https://img.shields.io/badge/Version-2.0.3-informational?style=flat-square) ![AppVersion: v0.3.1](https://img.shields.io/badge/AppVersion-v0.3.1-informational?style=flat-square)
 
 Hajimari is a beautiful & customizable browser startpage/dashboard with
 Kubernetes application discovery
@@ -171,7 +171,7 @@ Kubernetes: `>=1.16.0-0`
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://bjw-s.github.io/helm-charts/ | common | 0.2.2 |
+| https://bjw-s-labs.github.io/helm-charts/ | common | 0.2.2 |
 
 ## Values
 

@@ -29,6 +29,13 @@ type ReplicaStatusGetter struct {
 	kubeClient        kubernetes.Interface
 }
 
+// ServiceReference identifies a Service whose endpoints should be included in
+// an application's replica status.
+type ServiceReference struct {
+	Namespace string
+	Name      string
+}
+
 // Initializes a ReplicaStatusGetter
 func NewReplicaStatusGetter(kubeClient kubernetes.Interface) *ReplicaStatusGetter {
 	return &ReplicaStatusGetter{
@@ -38,52 +45,68 @@ func NewReplicaStatusGetter(kubeClient kubernetes.Interface) *ReplicaStatusGette
 
 // Gets replicaStatuses using the DiscoveryV1 api
 func (rsg *ReplicaStatusGetter) GetEndpointStatuses(ingress networkingV1.Ingress) *ReplicaStatusGetter {
-	namespace := ingress.ObjectMeta.GetNamespace()
-	serviceNames := getServiceNames(ingress)
-	var labelOptions metav1.ListOptions
+	return rsg.GetEndpointStatusesForServices(ingress.Name, ingressServiceReferences(ingress))
+}
 
-	// Set LabelOptions to get labels for service names that the ingress references
-	labelRequirements, err := labels.NewRequirement(serviceNameLabelKey, selection.In, serviceNames)
-	if err != nil {
-		logger.Error("Error setting labelSelector Requirements", err)
-	}
-	labelOptions.LabelSelector = labels.NewSelector().Add(*labelRequirements).String()
+// GetEndpointStatusesForServices gets replica status for the supplied Service
+// references. HTTPRoutes can reference Services in a namespace other than the
+// route's namespace, so EndpointSlices are queried once per namespace.
+func (rsg *ReplicaStatusGetter) GetEndpointStatusesForServices(resourceName string, services []ServiceReference) *ReplicaStatusGetter {
+	rsg.err = nil
+	rsg.replicas = 0
+	rsg.availableReplicas = 0
 
-	epslices, err := rsg.kubeClient.DiscoveryV1().EndpointSlices(namespace).List(context.Background(), labelOptions)
-
-	if err != nil {
-		logger.Error("Error Getting EndpointSlices: ", err)
-		rsg.err = err
-	}
-
-	if len(epslices.Items) > 1 {
-		// This scenario can happen if the metrics endpointslices are included in the ingress
-		logger.Debug(ingress.Name, " Multiple EndpointSlices found. Will try using all of them.")
+	serviceNamesByNamespace := make(map[string][]string)
+	for _, service := range services {
+		if service.Name == "" {
+			continue
+		}
+		serviceNamesByNamespace[service.Namespace] = append(serviceNamesByNamespace[service.Namespace], service.Name)
 	}
 
-	if len(epslices.Items) == 0 {
-		// This is indication that labels are mismatched somewhere
-		logger.Debug(ingress.Name, " No EndpointSlice Found")
+	if len(serviceNamesByNamespace) == 0 {
+		rsg.err = fmt.Errorf("No backend services found for %s", resourceName)
+		return rsg
 	}
 
-	replicas := 0
-	availableReplicas := 0
+	for namespace, serviceNames := range serviceNamesByNamespace {
+		labelRequirements, err := labels.NewRequirement(serviceNameLabelKey, selection.In, serviceNames)
+		if err != nil {
+			logger.Error("Error setting labelSelector Requirements", err)
+			rsg.err = err
+			return rsg
+		}
 
-	for _, epslice := range epslices.Items {
-		logger.Debug("Checking EndpointSlice: ", epslice.Name)
-		replicas = replicas + len(epslice.Endpoints)
-		for _, ep := range epslice.Endpoints {
-			if *ep.Conditions.Ready == true {
-				availableReplicas = availableReplicas + 1
+		labelOptions := metav1.ListOptions{
+			LabelSelector: labels.NewSelector().Add(*labelRequirements).String(),
+		}
+		epslices, err := rsg.kubeClient.DiscoveryV1().EndpointSlices(namespace).List(context.Background(), labelOptions)
+		if err != nil {
+			logger.Error("Error Getting EndpointSlices: ", err)
+			rsg.err = err
+			return rsg
+		}
+
+		if len(epslices.Items) > 1 {
+			logger.Debug(resourceName, " Multiple EndpointSlices found. Will try using all of them.")
+		}
+		if len(epslices.Items) == 0 {
+			logger.Debug(resourceName, " No EndpointSlice Found")
+		}
+
+		for _, epslice := range epslices.Items {
+			logger.Debug("Checking EndpointSlice: ", epslice.Name)
+			rsg.replicas += len(epslice.Endpoints)
+			for _, endpoint := range epslice.Endpoints {
+				if endpoint.Conditions.Ready == nil || *endpoint.Conditions.Ready {
+					rsg.availableReplicas++
+				}
 			}
 		}
 	}
 
-	if replicas == 0 {
-		rsg.err = fmt.Errorf("No endpoints found for %s", ingress.Name)
-	} else {
-		rsg.replicas = replicas
-		rsg.availableReplicas = availableReplicas
+	if rsg.replicas == 0 {
+		rsg.err = fmt.Errorf("No endpoints found for %s", resourceName)
 	}
 
 	return rsg
@@ -118,19 +141,20 @@ func (rsg *ReplicaStatusGetter) GetRatio() float64 {
 }
 
 // Gets Service Names that the Ingress is actually meant for
-func getServiceNames(ingress networkingV1.Ingress) []string {
-	serviceNames := []string{}
+func ingressServiceReferences(ingress networkingV1.Ingress) []ServiceReference {
+	services := []ServiceReference{}
+	namespace := ingress.GetNamespace()
 
 	if ingress.Spec.DefaultBackend != nil {
-		serviceNames = append(serviceNames, ingress.Spec.DefaultBackend.Service.Name)
+		services = append(services, ServiceReference{Namespace: namespace, Name: ingress.Spec.DefaultBackend.Service.Name})
 	}
 	if len(ingress.Spec.Rules) > 0 {
 		for _, rule := range ingress.Spec.Rules {
 			for _, path := range rule.HTTP.Paths {
-				serviceNames = append(serviceNames, path.Backend.Service.Name)
+				services = append(services, ServiceReference{Namespace: namespace, Name: path.Backend.Service.Name})
 			}
 		}
 	}
 
-	return serviceNames
+	return services
 }
