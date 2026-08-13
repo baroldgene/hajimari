@@ -1,10 +1,16 @@
 name: release
 
 on:
+  workflow_call:
+    inputs:
+      version:
+        description: Image tag to publish.
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       version:
-        description: Image tag to publish; defaults to the triggering Git ref.
+        description: Image tag; uses triggering branch or release tag if blank.
         required: false
         type: string
   release:
@@ -60,3 +66,4 @@ jobs:
           tags: |
             ${{ env.REGISTRY_IMAGE }}:latest
             ${{ env.REGISTRY_IMAGE }}:${{ steps.prep.outputs.version }}
+            ${{ env.REGISTRY_IMAGE }}:sha-${{ github.sha }}
