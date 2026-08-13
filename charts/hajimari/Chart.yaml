@@ -4,7 +4,7 @@ description: |
     Hajimari is a beautiful & customizable browser startpage/dashboard with 
     Kubernetes application discovery
 name: hajimari
-version: 2.0.2
+version: 2.0.3
 kubeVersion: ">=1.16.0-0"
 keywords:
 - hajimari
@@ -20,4 +20,4 @@ maintainers:
 dependencies:
 - name: common
   version: 0.2.2
-  repository: https://bjw-s.github.io/helm-charts/
+  repository: https://bjw-s-labs.github.io/helm-charts/
