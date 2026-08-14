@@ -59,7 +59,7 @@ func (al *List) Populate(namespaces ...string) *List {
 	if err != nil {
 		al.err = err
 	}
-	al.items = convertHTTPRoutesToHajimariApps(routes, al.dynClient, util.NewReplicaStatusGetter(al.kubeClient))
+	al.items = convertHTTPRoutesToHajimariApps(routes, al.dynClient, util.NewReplicaStatusGetter(al.kubeClient), al.appConfig.GatewayListenerPorts)
 	return al
 }
 
@@ -68,7 +68,7 @@ func (al *List) Get() ([]models.AppGroup, error) {
 	return al.items, al.err
 }
 
-func convertHTTPRoutesToHajimariApps(routes []unstructured.Unstructured, dynClient dynamic.Interface, rsg *util.ReplicaStatusGetter) (appGroups []models.AppGroup) {
+func convertHTTPRoutesToHajimariApps(routes []unstructured.Unstructured, dynClient dynamic.Interface, rsg *util.ReplicaStatusGetter, gatewayListenerPorts map[string]int64) (appGroups []models.AppGroup) {
 	groupIndexes := make(map[string]int)
 	for _, route := range routes {
 		wrapper := wrappers.NewHTTPRouteWrapper(&route)
@@ -81,7 +81,7 @@ func convertHTTPRoutesToHajimariApps(routes []unstructured.Unstructured, dynClie
 			appGroups = append(appGroups, models.AppGroup{Group: wrapper.GetGroup()})
 		}
 
-		scheme, gatewayHostname, gatewayPort := resolveGatewayListener(route, dynClient)
+		scheme, gatewayHostname, gatewayPort := resolveGatewayListener(route, dynClient, gatewayListenerPorts)
 		app := models.App{
 			Name:        wrapper.GetName(),
 			Icon:        wrapper.GetAnnotationValue(annotations.HajimariIconAnnotation),

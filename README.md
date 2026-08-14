@@ -88,7 +88,13 @@ Hajimari looks for specific annotations on [Ingresses](https://kubernetes.io/doc
 
 Hajimari also discovers [Gateway API HTTPRoutes](https://gateway-api.sigs.k8s.io/reference/api-types/httproute/) in the selected namespaces. HTTPRoutes use the same `hajimari.io/*` annotations as Ingresses, including `hajimari.io/enable` and `hajimari.io/instance`.
 
-When no `hajimari.io/url` annotation is set, Hajimari builds the app URL from the first HTTPRoute hostname and path match. It uses `https` when the selected parent Gateway listener uses the `HTTPS` protocol, and `http` otherwise. Add `hajimari.io/url` for hostless or wildcard routes, routes with more complex matching, or when you need to choose a different public URL.
+When no `hajimari.io/url` annotation is set, Hajimari builds the app URL from the first HTTPRoute hostname and path match. It uses `https` when the selected parent Gateway listener uses the `HTTPS` protocol, and `http` otherwise. By default it uses the Gateway listener's declared port. If the Gateway is exposed on different public ports, configure `gatewayListenerPorts` by listener name; for example, map an internal `websecure: 8443` listener to public port `443`. Standard ports (`80` for HTTP and `443` for HTTPS) are omitted from generated URLs. Add `hajimari.io/url` for hostless or wildcard routes, routes with more complex matching, or when you need to choose a different public URL.
+
+```yaml
+gatewayListenerPorts:
+  web: 80
+  websecure: 443
+```
 
 ### Config
 
@@ -99,6 +105,7 @@ Hajimari supports the following configuration options that can be modified by ei
 |     instanceName      |                                 Name of the Hajimari instance                                  |                 ""                 | string                                |
 |     defaultEnable     |             Set to true to expose all ingresses in selected namespaces by default              |               false                | bool                                  |
 |   namespaceSelector   | Namespace selector which uses a combination of hardcoded namespaces as well as label selectors |             any: true              | NamespaceSelector                     |
+|  gatewayListenerPorts | Maps Gateway listener names to their public ports for generated HTTPRoute URLs                   |                 {}                 | map[string]int64                      |
 |         name          |                                  Name to use in the greeting                                   |               "You"                | string                                |
 |         title         |                            Browser title for this Hajimari instance                            |             "Hajimari"             | string                                |
 |      lightTheme       |                       Theme to use when the browser prefers light themes                       |             "gazette"              | string                                |

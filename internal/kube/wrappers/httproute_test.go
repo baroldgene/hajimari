@@ -42,6 +42,18 @@ func TestHTTPRouteWrapperExtractsURLAndBackendServices(t *testing.T) {
 	}
 }
 
+func TestHTTPRouteWrapperOmitsStandardHTTPSPort(t *testing.T) {
+	route := unstructured.Unstructured{Object: map[string]interface{}{
+		"spec": map[string]interface{}{
+			"hostnames": []interface{}{"app.example.test"},
+		},
+	}}
+
+	if got, want := NewHTTPRouteWrapper(&route).GetURLWithGateway("https", "", 443), "https://app.example.test"; got != want {
+		t.Fatalf("GetURLWithGateway() = %q, want %q", got, want)
+	}
+}
+
 func TestHTTPRouteWrapperUsesExplicitURL(t *testing.T) {
 	route := unstructured.Unstructured{}
 	route.SetName("app-route")

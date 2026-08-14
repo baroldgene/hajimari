@@ -34,6 +34,12 @@ hajimari:
     matchNames:
     - media
 
+  # -- Map Gateway listener names to the public ports used in HTTPRoute tile URLs.
+  # Leave empty to use the port declared by each Gateway listener.
+  gatewayListenerPorts: {}
+  # web: 80
+  # websecure: 443
+
   # -- Override the title of the Hajimari pages
   title: null
 
