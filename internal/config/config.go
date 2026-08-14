@@ -11,6 +11,7 @@ import (
 // Config struct for hajimari
 type Config struct {
 	NamespaceSelector     NamespaceSelector       `json:"namespaceSelector"`
+	GatewayListenerPorts  map[string]int64        `json:"gatewayListenerPorts"`
 	DefaultEnable         bool                    `json:"defaultEnable"`
 	InstanceName          string                  `json:"instanceName"`
 	Title                 string                  `json:"title"`
